@@ -3,8 +3,6 @@ Chatterbox TTS Persian Predictor for Replicate.
 
 Runs the Chatterbox multilingual model with Persian fine-tuned weights
 from Thomcles/Chatterbox-TTS-Persian-Farsi.
-
-Requires HF_TOKEN environment variable or Replicate secret for gated model access.
 """
 
 from __future__ import annotations
@@ -15,10 +13,10 @@ from pathlib import Path
 
 from cog import BasePredictor, Input, Path as CogPath
 
-# Model references
-BASE_MODEL_REPO = "ResembleAI/chatterbox"
-PERSIAN_WEIGHTS_REPO = "Thomcles/Chatterbox-TTS-Persian-Farsi"
-PERSIAN_WEIGHTS_FILE = "t3_fa.safetensors"
+# Local weights paths (copied into image during build)
+LOCAL_WEIGHTS_DIR = Path("/src/weights")
+LOCAL_CHATTERBOX_DIR = LOCAL_WEIGHTS_DIR / "chatterbox"
+LOCAL_PERSIAN_WEIGHTS = LOCAL_WEIGHTS_DIR / "persian" / "t3_fa.safetensors"
 
 
 class Predictor(BasePredictor):
@@ -26,11 +24,7 @@ class Predictor(BasePredictor):
         """Load the model into memory."""
         import torch
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-        from huggingface_hub import hf_hub_download
         from safetensors.torch import load_file as load_safetensors
-
-        # Get HuggingFace token for gated model access (optional - weights may be cached)
-        hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
 
         # Determine device
         if torch.cuda.is_available():
@@ -39,18 +33,35 @@ class Predictor(BasePredictor):
             self.device = "cpu"
 
         print(f"Loading Chatterbox multilingual model on {self.device}...")
-        self.model = ChatterboxMultilingualTTS.from_pretrained(device=self.device)
 
-        # Download and load Persian fine-tuned weights (should be cached from build)
-        print(f"Loading Persian weights from {PERSIAN_WEIGHTS_REPO}...")
-        persian_weights_path = hf_hub_download(
-            repo_id=PERSIAN_WEIGHTS_REPO,
-            filename=PERSIAN_WEIGHTS_FILE,
-            token=hf_token,  # Token needed if not cached
-        )
+        # Check if local weights exist (baked into image)
+        if LOCAL_CHATTERBOX_DIR.exists():
+            print(f"Loading base model from local weights: {LOCAL_CHATTERBOX_DIR}")
+            self.model = ChatterboxMultilingualTTS.from_pretrained(
+                str(LOCAL_CHATTERBOX_DIR), device=self.device
+            )
+        else:
+            print("Loading base model from HuggingFace Hub...")
+            self.model = ChatterboxMultilingualTTS.from_pretrained(device=self.device)
+
+        # Load Persian fine-tuned weights
+        if LOCAL_PERSIAN_WEIGHTS.exists():
+            print(f"Loading Persian weights from: {LOCAL_PERSIAN_WEIGHTS}")
+            persian_weights_path = LOCAL_PERSIAN_WEIGHTS
+        else:
+            # Fallback to HuggingFace download (requires token)
+            from huggingface_hub import hf_hub_download
+
+            hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+            print("Downloading Persian weights from HuggingFace Hub...")
+            persian_weights_path = hf_hub_download(
+                repo_id="Thomcles/Chatterbox-TTS-Persian-Farsi",
+                filename="t3_fa.safetensors",
+                token=hf_token,
+            )
 
         print("Loading Persian weights into t3 layer...")
-        t3_state = load_safetensors(persian_weights_path, device="cpu")
+        t3_state = load_safetensors(str(persian_weights_path), device="cpu")
         self.model.t3.load_state_dict(t3_state)
         self.model.t3.to(self.device).eval()
 

@@ -31,8 +31,36 @@ jobs:
         with:
           token: ${{ secrets.REPLICATE_API_TOKEN }}
 
-      - name: Download model weights
-        run: cog run -e HF_TOKEN=${{ secrets.HF_TOKEN }} script/download_weights
+      - name: Download model weights to build context
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install huggingface_hub
+          python -c "
+          import os
+          from huggingface_hub import hf_hub_download, snapshot_download
+
+          # Download to local weights directory (will be in Docker context)
+          os.makedirs('weights', exist_ok=True)
+
+          # Download base model
+          print('Downloading base Chatterbox model...')
+          snapshot_download(
+              repo_id='ResembleAI/chatterbox',
+              local_dir='weights/chatterbox',
+              allow_patterns=['*.safetensors', '*.json', '*.pt'],
+          )
+
+          # Download Persian weights
+          print('Downloading Persian weights...')
+          hf_hub_download(
+              repo_id='Thomcles/Chatterbox-TTS-Persian-Farsi',
+              filename='t3_fa.safetensors',
+              local_dir='weights/persian',
+              token=os.environ['HF_TOKEN'],
+          )
+          print('Downloads complete!')
+          "
 
       - name: Push to Replicate
         run: cog push r8.im/${{ inputs.model_name }}

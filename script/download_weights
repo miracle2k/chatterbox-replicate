@@ -16,8 +16,15 @@ import sys
 
 
 def main() -> None:
-    # Check for HF_TOKEN
+    # Check for HF_TOKEN from environment or Docker secret
     hf_token = os.environ.get("HF_TOKEN")
+
+    # Also check Docker secret file (for cog build --secret)
+    secret_file = "/run/secrets/HF_TOKEN"
+    if not hf_token and os.path.exists(secret_file):
+        with open(secret_file) as f:
+            hf_token = f.read().strip()
+
     if not hf_token:
         print("ERROR: HF_TOKEN environment variable is required for gated model access.")
         print("Set it in your environment or pass it to cog run.")
