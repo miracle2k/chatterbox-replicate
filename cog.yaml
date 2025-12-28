@@ -13,7 +13,7 @@ build:
     - "safetensors"
     - "huggingface_hub>=0.25.0"
   run:
-    - command: "python script/download_weights"
+    - command: "python /src/script/download_weights"
       mounts:
         - type: secret
           id: HF_TOKEN
