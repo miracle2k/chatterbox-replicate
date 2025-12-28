@@ -57,3 +57,4 @@ cog predict -i text="سلام، حال شما چطور است؟"
 Total download: ~3.2GB
 - Base model (s3gen + ve): ~1.07GB
 - Persian weights (t3_fa.safetensors): ~2.14GB
+
