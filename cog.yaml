@@ -12,5 +12,4 @@ build:
     - "chatterbox-tts"
     - "safetensors"
     - "huggingface_hub>=0.25.0"
-
 predict: "predict.py:Predictor"

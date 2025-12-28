@@ -3,39 +3,43 @@
 Download Chatterbox model weights.
 
 This script is run during the Cog build process to cache the model
-weights in the Docker image. Downloads:
-  - ResembleAI/chatterbox base multilingual model (~3GB)
-  - Thomcles/Chatterbox-TTS-Persian-Farsi Persian weights (~2GB)
+weights in the Docker image. It only downloads, does not load models
+(to avoid GPU requirements during build).
+
+Requires HF_TOKEN environment variable for gated Persian weights.
 """
 
 from __future__ import annotations
 
+import os
+import sys
+
 
 def main() -> None:
-    print("Downloading Chatterbox model weights...")
+    # Check for HF_TOKEN
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        print("ERROR: HF_TOKEN environment variable is required for gated model access.")
+        print("Set it in your environment or pass it to cog run.")
+        sys.exit(1)
 
-    import torch
-    from chatterbox.mtl_tts import ChatterboxMultilingualTTS
-    from huggingface_hub import hf_hub_download
-    from safetensors.torch import load_file as load_safetensors
+    from huggingface_hub import hf_hub_download, snapshot_download
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    # Download base multilingual model
-    print("Downloading base multilingual model from ResembleAI/chatterbox...")
-    model = ChatterboxMultilingualTTS.from_pretrained(device=device)
-
-    # Download Persian fine-tuned weights
-    print("Downloading Persian weights from Thomcles/Chatterbox-TTS-Persian-Farsi...")
-    persian_weights_path = hf_hub_download(
-        repo_id="Thomcles/Chatterbox-TTS-Persian-Farsi",
-        filename="t3_fa.safetensors",
+    # Download base Chatterbox model files
+    print("Downloading base Chatterbox model from ResembleAI/chatterbox...")
+    snapshot_download(
+        repo_id="ResembleAI/chatterbox",
+        allow_patterns=["*.safetensors", "*.json", "*.pt"],
     )
 
-    # Load and apply Persian weights to verify they work
-    print("Verifying Persian weights load correctly...")
-    t3_state = load_safetensors(persian_weights_path, device="cpu")
-    model.t3.load_state_dict(t3_state)
+    # Download Persian fine-tuned weights (gated model)
+    print("Downloading Persian weights from Thomcles/Chatterbox-TTS-Persian-Farsi...")
+    persian_path = hf_hub_download(
+        repo_id="Thomcles/Chatterbox-TTS-Persian-Farsi",
+        filename="t3_fa.safetensors",
+        token=hf_token,
+    )
+    print(f"Persian weights downloaded to: {persian_path}")
 
     print("Download complete!")
 
