@@ -31,8 +31,8 @@ jobs:
         with:
           token: ${{ secrets.REPLICATE_API_TOKEN }}
 
-      - name: Download model weights
-        run: cog run script/download_weights
+      # Note: Model weights are downloaded on first prediction because
+      # the checkpoint requires CUDA for loading (GitHub runners don't have GPU)
 
       - name: Push to Replicate
         run: cog push r8.im/${{ inputs.model_name }}
