@@ -3,10 +3,13 @@ Chatterbox TTS Persian Predictor for Replicate.
 
 Runs the Chatterbox multilingual model with Persian fine-tuned weights
 from Thomcles/Chatterbox-TTS-Persian-Farsi.
+
+Requires HF_TOKEN environment variable or Replicate secret for gated model access.
 """
 
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
 
@@ -26,6 +29,14 @@ class Predictor(BasePredictor):
         from huggingface_hub import hf_hub_download
         from safetensors.torch import load_file as load_safetensors
 
+        # Get HuggingFace token for gated model access
+        hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        if not hf_token:
+            raise ValueError(
+                "HF_TOKEN environment variable required for gated model access. "
+                "Set it as a Replicate secret."
+            )
+
         # Determine device
         if torch.cuda.is_available():
             self.device = "cuda"
@@ -35,11 +46,12 @@ class Predictor(BasePredictor):
         print(f"Loading Chatterbox multilingual model on {self.device}...")
         self.model = ChatterboxMultilingualTTS.from_pretrained(device=self.device)
 
-        # Download and load Persian fine-tuned weights
+        # Download and load Persian fine-tuned weights (gated model requires token)
         print(f"Downloading Persian weights from {PERSIAN_WEIGHTS_REPO}...")
         persian_weights_path = hf_hub_download(
             repo_id=PERSIAN_WEIGHTS_REPO,
             filename=PERSIAN_WEIGHTS_FILE,
+            token=hf_token,
         )
 
         print("Loading Persian weights into t3 layer...")
