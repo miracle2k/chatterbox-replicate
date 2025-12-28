@@ -13,17 +13,7 @@ build:
     - "safetensors"
     - "huggingface_hub>=0.25.0"
   run:
-    - command: >-
-        python -c "
-        import os;
-        token = open('/run/secrets/HF_TOKEN').read().strip();
-        from huggingface_hub import snapshot_download, hf_hub_download;
-        print('Downloading base Chatterbox model...');
-        snapshot_download('ResembleAI/chatterbox', allow_patterns=['*.safetensors', '*.json', '*.pt']);
-        print('Downloading Persian weights...');
-        hf_hub_download('Thomcles/Chatterbox-TTS-Persian-Farsi', 't3_fa.safetensors', token=token);
-        print('Done!')
-        "
+    - command: python -c "import os; token = open('/run/secrets/HF_TOKEN').read().strip(); from huggingface_hub import snapshot_download, hf_hub_download; print('Downloading base Chatterbox model...'); snapshot_download('ResembleAI/chatterbox', allow_patterns=['*.safetensors', '*.json', '*.pt']); print('Downloading Persian weights...'); hf_hub_download('Thomcles/Chatterbox-TTS-Persian-Farsi', 't3_fa.safetensors', token=token); print('Done!')"
       mounts:
         - type: secret
           id: HF_TOKEN
