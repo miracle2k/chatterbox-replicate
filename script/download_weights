@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""
+Download Chatterbox model weights.
+
+This script is run during the Cog build process to cache the model
+weights in the Docker image. Downloads:
+  - ResembleAI/chatterbox base multilingual model (~3GB)
+  - Thomcles/Chatterbox-TTS-Persian-Farsi Persian weights (~2GB)
+"""
+
+from __future__ import annotations
+
+
+def main() -> None:
+    print("Downloading Chatterbox model weights...")
+
+    import torch
+    from chatterbox.mtl_tts import ChatterboxMultilingualTTS
+    from huggingface_hub import hf_hub_download
+    from safetensors.torch import load_file as load_safetensors
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Download base multilingual model
+    print("Downloading base multilingual model from ResembleAI/chatterbox...")
+    model = ChatterboxMultilingualTTS.from_pretrained(device=device)
+
+    # Download Persian fine-tuned weights
+    print("Downloading Persian weights from Thomcles/Chatterbox-TTS-Persian-Farsi...")
+    persian_weights_path = hf_hub_download(
+        repo_id="Thomcles/Chatterbox-TTS-Persian-Farsi",
+        filename="t3_fa.safetensors",
+    )
+
+    # Load and apply Persian weights to verify they work
+    print("Verifying Persian weights load correctly...")
+    t3_state = load_safetensors(persian_weights_path, device="cpu")
+    model.t3.load_state_dict(t3_state)
+
+    print("Download complete!")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,16 @@
+# Model weights (downloaded during build)
+weights/
+*.bin
+*.safetensors
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Cog
+.cog/
+
+# OS
+.DS_Store
