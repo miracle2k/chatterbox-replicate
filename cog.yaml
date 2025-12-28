@@ -12,4 +12,10 @@ build:
     - "chatterbox-tts"
     - "safetensors"
     - "huggingface_hub>=0.25.0"
+  run:
+    - command: "python script/download_weights"
+      mounts:
+        - type: secret
+          id: HF_TOKEN
+          target: /run/secrets/HF_TOKEN
 predict: "predict.py:Predictor"
